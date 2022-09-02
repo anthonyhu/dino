@@ -34,3 +34,4 @@ dependencies:
     - wandb==0.10.12
     - gpustat==0.6.0
     - timm==0.5.4
+    - ipywidgets==7.7.2
