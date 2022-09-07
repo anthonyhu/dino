@@ -2,7 +2,7 @@ import os
 import shutil
 from glob import glob
 
-ROOT = '/mnt/local/datasets/ipace'
+ROOT = '/mnt/local/datasets/temp_ipace'
 
 
 jpeg_root = os.path.join(ROOT, 'image-cache/jpeg-full_resolution')
@@ -15,9 +15,9 @@ for path in sorted(glob(os.path.join(jpeg_root, '*', '*'))):
     # Remove empty folder 'cameras/front-forward'
     shutil.rmtree(os.path.join(path, 'cameras'))
 
-    #  Move image folder to root
+    # Move image folder to root
     shutil.move(path, ROOT)
 
-#  Remove empty image-cache folder
+# Remove empty image-cache folder
 shutil.rmtree(os.path.join(ROOT, 'image-cache'))
 shutil.rmtree(os.path.join(ROOT, 'teacher-cache'))
