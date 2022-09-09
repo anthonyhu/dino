@@ -51,7 +51,7 @@ def eval_video_tracking_davis(args, model, frame_list, video_dir, first_seg, seg
     frame1_feat = extract_feature(model, frame1).T #  dim x h*w
 
     # saving first segmentation
-    out_path = os.path.join(video_folder, "00000.png")
+    out_path = os.path.join(video_folder, os.path.basename(frame_list[0]).replace('.jpg', '.png'))
     imwrite_indexed(out_path, seg_ori, color_palette)
     mask_neighborhood = None
     for cnt in tqdm(range(1, len(frame_list))):
@@ -82,7 +82,7 @@ def eval_video_tracking_davis(args, model, frame_list, video_dir, first_seg, seg
         imwrite_indexed(os.path.join(video_folder, frame_nm), frame_tar_seg, color_palette)
 
 
-def restrict_neighborhood(h, w):
+def restrict_neighborhood(h, w, args):
     # We restrict the set of source nodes considered to a spatial neighborhood of the query node (i.e. ``local attention'')
     mask = torch.zeros(h, w, h, w)
     for i in range(h):
@@ -130,7 +130,7 @@ def label_propagation(args, model, frame_tar, list_frame_feats, list_segs, mask_
 
     if args.size_mask_neighborhood > 0:
         if mask_neighborhood is None:
-            mask_neighborhood = restrict_neighborhood(h, w)
+            mask_neighborhood = restrict_neighborhood(h, w, args)
             mask_neighborhood = mask_neighborhood.unsqueeze(0).repeat(ncontext, 1, 1)
         aff *= mask_neighborhood
 
