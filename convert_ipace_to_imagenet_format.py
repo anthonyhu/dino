@@ -2,7 +2,7 @@ import os
 import shutil
 from glob import glob
 
-ROOT = '/mnt/local/datasets/temp_ipace'
+ROOT = '/mnt/local/datasets/ipace_copy'
 
 
 jpeg_root = os.path.join(ROOT, 'image-cache/jpeg-full_resolution')
