@@ -304,7 +304,7 @@ def parse_args():
         help="Architecture (support only ViT atm).",
     )
     parser.add_argument(
-        "--patch_size", default=8, type=int, help="Patch resolution of the self.model."
+        "--patch_size", default=16, type=int, help="Patch resolution of the self.model."
     )
     parser.add_argument(
         "--pretrained_weights",
@@ -356,7 +356,7 @@ def parse_args():
     )
     parser.add_argument(
         "--fps",
-        default=30.0,
+        default=25.0,
         type=float,
         help="FPS of input / output video. Automatically set if you extract frames from a video.",
     )

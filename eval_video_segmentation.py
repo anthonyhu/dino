@@ -30,6 +30,7 @@ from torch.nn import functional as F
 from PIL import Image
 from torchvision import transforms
 
+
 import utils
 import vision_transformer as vits
 
@@ -39,7 +40,7 @@ def eval_video_tracking_davis(args, model, frame_list, video_dir, first_seg, seg
     """
     Evaluate tracking on a video given first frame & segmentation
     """
-    video_folder = os.path.join(args.output_dir, video_dir.split('/')[-1])
+    video_folder = os.path.join(args.output_dir, video_dir.split('/')[-1], 'prediction')
     os.makedirs(video_folder, exist_ok=True)
 
     # The queue stores the n preceeding frames
@@ -54,7 +55,7 @@ def eval_video_tracking_davis(args, model, frame_list, video_dir, first_seg, seg
     out_path = os.path.join(video_folder, os.path.basename(frame_list[0]).replace('.jpg', '.png'))
     imwrite_indexed(out_path, seg_ori, color_palette)
     mask_neighborhood = None
-    for cnt in tqdm(range(1, len(frame_list))):
+    for cnt in range(1, len(frame_list)):
         frame_tar = read_frame(frame_list[cnt])[0]
 
         # we use the first segmentation and the n previous ones
@@ -152,11 +153,18 @@ def label_propagation(args, model, frame_tar, list_frame_feats, list_segs, mask_
 
 def extract_feature(model, frame, return_h_w=False):
     """Extract one frame feature everytime."""
-    out = model.get_intermediate_layers(frame.unsqueeze(0).cuda(), n=1)[0]
-    out = out[:, 1:, :]  # we discard the [CLS] token
-    h, w = int(frame.shape[1] / model.patch_embed.patch_size), int(frame.shape[2] / model.patch_embed.patch_size)
-    dim = out.shape[-1]
-    out = out[0].reshape(h, w, dim)
+    if isinstance(model, vits.VisionTransformer):
+        out = model.get_intermediate_layers(frame.unsqueeze(0).cuda(), n=1)[0]
+        out = out[:, 1:, :]  # we discard the [CLS] token
+        h, w = int(frame.shape[1] / model.patch_embed.patch_size), int(frame.shape[2] / model.patch_embed.patch_size)
+        dim = out.shape[-1]
+        out = out[0].reshape(h, w, dim)
+    else:
+        feature_extractor = list(model.children())[:-3]
+        feature_extractor = nn.Sequential(*feature_extractor)
+        out = feature_extractor(frame.unsqueeze(0).cuda())
+        out = out[0].permute((1, 2, 0))
+        h, w, dim = out.shape
     out = out.reshape(-1, dim)
     if return_h_w:
         return out, h, w

@@ -2,6 +2,9 @@ from glob import glob
 import os
 import argparse
 import numpy as np
+from tqdm import tqdm
+from torchvision import models as torchvision_models
+import torch.nn as nn
 
 from eval_video_segmentation import read_frame_list, read_seg, eval_video_tracking_davis
 import utils
@@ -12,7 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Evaluation with video segmentation on I-PACE data')
     parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
     parser.add_argument('--arch', default='vit_small', type=str,
-        choices=['vit_tiny', 'vit_small', 'vit_base'], help='Architecture (support only ViT atm).')
+        choices=['vit_tiny', 'vit_small', 'vit_base', 'resnet50'], help='Architecture (support only ViT atm).')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
     parser.add_argument('--output_dir', default=".", help='Path where to save segmentations')
@@ -31,8 +34,13 @@ if __name__ == '__main__':
     print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
 
     # building network
-    model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
-    print(f"Model {args.arch} {args.patch_size}x{args.patch_size} built.")
+    if "vit" in args.arch:
+        model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
+        print(f"Model {args.arch} {args.patch_size}x{args.patch_size} built.")
+    elif args.arch in torchvision_models.__dict__.keys():
+        model = torchvision_models.__dict__[args.arch](num_classes=0)
+        model.fc = nn.Identity()
+
     model.cuda()
     utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
     for param in model.parameters():
@@ -69,14 +77,15 @@ if __name__ == '__main__':
         (0, 0, 0),
     ])
 
+    # a colour palette must contain 256 colours so fill with dummies.
     colour_palette = np.vstack([colour_palette, np.tile(np.arange(27, 256)[:, None], 3)]).astype(np.uint8)
 
-    list_video_dir = sorted(glob(os.path.join(args.data_path, 'image', '*')))
+    list_video_dir = sorted(glob(os.path.join(args.data_path, '*')))
     for i, video_dir in enumerate(list_video_dir):
         video_name = os.path.basename(video_dir)
-        print(f'[{i}/{len(list_video_dir)}] Begin to segment video {video_name}.')
-        frame_list = read_frame_list(video_dir)
-        for interval in range(0, len(frame_list), args.refresh_label_interval):
+        print(f'[{i+1}/{len(list_video_dir)}] Segmenting {video_name}')
+        frame_list = read_frame_list(os.path.join(video_dir, 'image'))
+        for interval in tqdm(range(0, len(frame_list), args.refresh_label_interval)):
             current_frame_list = frame_list[interval:interval+args.refresh_label_interval]
             seg_path = current_frame_list[0].replace("image", "segmentation").replace("jpg", "png")
             first_seg, seg_ori = read_seg(seg_path, args.patch_size)
