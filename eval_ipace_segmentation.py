@@ -36,9 +36,20 @@ if __name__ == '__main__':
     # building network
     if "vit" in args.arch:
         model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
+
+        # imagenet weights
+        # import timm
+        # model_timm = timm.create_model('vit_small_patch16_224', pretrained=True)
+        # model_timm.head = nn.Identity()
+        # model.load_state_dict(model_timm.state_dict())
         print(f"Model {args.arch} {args.patch_size}x{args.patch_size} built.")
+
     elif args.arch in torchvision_models.__dict__.keys():
         model = torchvision_models.__dict__[args.arch](num_classes=0)
+        # imagenet weights
+        # import torchvision
+        # model = torchvision.models.resnet50(pretrained=True)
+        # print('resnet50')
         model.fc = nn.Identity()
 
     model.cuda()
