@@ -160,11 +160,16 @@ def extract_feature(model, frame, return_h_w=False):
         dim = out.shape[-1]
         out = out[0].reshape(h, w, dim)
     else:
-        feature_extractor = list(model.children())[:-3]
-        feature_extractor = nn.Sequential(*feature_extractor)
-        out = feature_extractor(frame.unsqueeze(0).cuda())
-        out = out[0].permute((1, 2, 0))
-        h, w, dim = out.shape
+        # MAE
+        out, h, w = model.forward_features(frame.float().unsqueeze(0).cuda())
+        dim = out.shape[-1]
+
+        # resnet
+        # feature_extractor = list(model.children())[:-3]
+        # feature_extractor = nn.Sequential(*feature_extractor)
+        # out = feature_extractor(frame.unsqueeze(0).cuda())
+        # out = out[0].permute((1, 2, 0))
+        # h, w, dim = out.shape
     out = out.reshape(-1, dim)
     if return_h_w:
         return out, h, w

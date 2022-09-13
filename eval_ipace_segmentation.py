@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Evaluation with video segmentation on I-PACE data')
     parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
     parser.add_argument('--arch', default='vit_small', type=str,
-        choices=['vit_tiny', 'vit_small', 'vit_base', 'resnet50'], help='Architecture (support only ViT atm).')
+        choices=['vit_tiny', 'vit_small', 'vit_base', 'resnet50', 'mae'], help='Architecture (support only ViT atm).')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
     parser.add_argument('--output_dir', default=".", help='Path where to save segmentations')
@@ -51,9 +51,25 @@ if __name__ == '__main__':
         # model = torchvision.models.resnet50(pretrained=True)
         # print('resnet50')
         model.fc = nn.Identity()
+    elif args.arch == 'mae':
+        import torch
+        import sys
+        sys.path.insert(1, '/home/anthony/mae')
+        import models_mae
+        def prepare_model(chkpt_dir, arch='mae_vit_large_patch16'):
+            # build model
+            model = getattr(models_mae, arch)()
+            # load model
+            checkpoint = torch.load(chkpt_dir, map_location='cpu')
+            msg = model.load_state_dict(checkpoint['model'], strict=False)
+            print(msg)
+            return model
+        chkpt_dir = '/home/anthony/mae/mae_visualize_vit_large.pth'
+        model = prepare_model(chkpt_dir, 'mae_vit_large_patch16')
 
     model.cuda()
-    utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
+    if "vit" in args.arch:
+        utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
     for param in model.parameters():
         param.requires_grad = False
     model.eval()
