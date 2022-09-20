@@ -64,8 +64,12 @@ if __name__ == '__main__':
             msg = model.load_state_dict(checkpoint['model'], strict=False)
             print(msg)
             return model
-        chkpt_dir = '/home/anthony/mae/mae_visualize_vit_large.pth'
-        model = prepare_model(chkpt_dir, 'mae_vit_large_patch16')
+        # imagenet
+        # chkpt_dir = '/home/anthony/mae/mae_visualize_vit_large.pth'
+        # model = prepare_model(chkpt_dir, 'mae_vit_large_patch16')
+
+        chkpt_dir = '/home/anthony/experiments/mae/vit_base/checkpoint-180.pth'
+        model = prepare_model(chkpt_dir, 'mae_vit_base_patch16')
 
     model.cuda()
     if "vit" in args.arch:
