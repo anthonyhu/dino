@@ -15,7 +15,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Evaluation with video segmentation on I-PACE data')
     parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
     parser.add_argument('--arch', default='vit_small', type=str,
-        choices=['vit_tiny', 'vit_small', 'vit_base', 'resnet50', 'mae'], help='Architecture (support only ViT atm).')
+        choices=['vit_tiny', 'vit_small', 'vit_base', 'resnet50', 'mae', 'vqvae'], help='Architecture (support only '
+                                                                                        'ViT atm).')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
     parser.add_argument('--output_dir', default=".", help='Path where to save segmentations')
@@ -70,6 +71,23 @@ if __name__ == '__main__':
 
         chkpt_dir = '/home/anthony/experiments/mae/vit_base/checkpoint-180.pth'
         model = prepare_model(chkpt_dir, 'mae_vit_base_patch16')
+
+    elif args.arch == 'vqvae':
+        import torch
+        import sys
+        sys.path.insert(1, '/home/anthony/other_githubs/vq-vae-2-pytorch')
+
+        from vqvae import VQVAE
+
+        chkpt_dir = '/home/anthony/experiments/vqvae/vqvae_downsampling_8/vqvae_014.pt'
+        tmp_ckpt = torch.load(chkpt_dir)
+        ckpt = {}
+
+        for k, v in tmp_ckpt.items():
+            ckpt[k.replace('module.', '')] = v
+
+        model = VQVAE()
+        model.load_state_dict(ckpt)
 
     model.cuda()
     if "vit" in args.arch:
