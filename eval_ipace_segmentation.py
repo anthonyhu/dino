@@ -3,8 +3,6 @@ import os
 import argparse
 import numpy as np
 from tqdm import tqdm
-from torchvision import models as torchvision_models
-import torch.nn as nn
 
 from eval_video_segmentation import read_frame_list, read_seg, eval_video_tracking_davis
 import utils
@@ -29,6 +27,7 @@ if __name__ == '__main__':
     parser.add_argument("--refresh_label_interval", type=int, default=50, help="Interval to refresh segmentation "
                                                                                "label. "
                                                                       "Default to 50, i.e. 2 seconds.")
+    parser.add_argument('--path_to_mae_repo', type=str, default='/home/anthony/mae')
     args = parser.parse_args()
 
     print("git:\n  {}\n".format(utils.get_sha()))
@@ -36,26 +35,14 @@ if __name__ == '__main__':
 
     # building network
     if "vit" in args.arch:
+        # DINO
         model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
-
-        # imagenet weights
-        # import timm
-        # model_timm = timm.create_model('vit_small_patch16_224', pretrained=True)
-        # model_timm.head = nn.Identity()
-        # model.load_state_dict(model_timm.state_dict())
         print(f"Model {args.arch} {args.patch_size}x{args.patch_size} built.")
-
-    elif args.arch in torchvision_models.__dict__.keys():
-        model = torchvision_models.__dict__[args.arch](num_classes=0)
-        # imagenet weights
-        # import torchvision
-        # model = torchvision.models.resnet50(pretrained=True)
-        # print('resnet50')
-        model.fc = nn.Identity()
     elif args.arch == 'mae':
+        # MAE
         import torch
         import sys
-        sys.path.insert(1, '/home/anthony/mae')
+        sys.path.insert(1, args.path_to_mae_repo)
         import models_mae
         def prepare_model(chkpt_dir, arch='mae_vit_large_patch16'):
             # build model
@@ -65,29 +52,8 @@ if __name__ == '__main__':
             msg = model.load_state_dict(checkpoint['model'], strict=False)
             print(msg)
             return model
-        # imagenet
-        # chkpt_dir = '/home/anthony/mae/mae_visualize_vit_large.pth'
-        # model = prepare_model(chkpt_dir, 'mae_vit_large_patch16')
 
-        chkpt_dir = '/home/anthony/experiments/mae/vit_base/checkpoint-180.pth'
-        model = prepare_model(chkpt_dir, 'mae_vit_base_patch16')
-
-    elif args.arch == 'vqvae':
-        import torch
-        import sys
-        sys.path.insert(1, '/home/anthony/other_githubs/vq-vae-2-pytorch')
-
-        from vqvae import VQVAE
-
-        chkpt_dir = '/home/anthony/experiments/vqvae/vqvae_downsampling_8/vqvae_014.pt'
-        tmp_ckpt = torch.load(chkpt_dir)
-        ckpt = {}
-
-        for k, v in tmp_ckpt.items():
-            ckpt[k.replace('module.', '')] = v
-
-        model = VQVAE()
-        model.load_state_dict(ckpt)
+        model = prepare_model(args.pretrained_weights, 'mae_vit_base_patch16')
 
     model.cuda()
     if "vit" in args.arch:
