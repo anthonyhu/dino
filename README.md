@@ -12,7 +12,6 @@ PyTorch implementation and pretrained models for DINO. For details, see **Emergi
 - Create conda environment by running `conda env create`.
 
 ## Evaluate model on semantic segmentation propagation
-
 ### DINO
 
 This assumes you have a folder of a run with rgb images and semantic segmentation labels `${DATAROOT}`, and
