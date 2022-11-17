@@ -72,7 +72,9 @@ def eval_video_tracking_davis(args, model, frame_list, video_dir, first_seg, seg
         que.put([feat_tar, seg])
 
         # upsampling & argmax
-        frame_tar_avg = F.interpolate(frame_tar_avg, scale_factor=args.patch_size, mode='bilinear', align_corners=False, recompute_scale_factor=False)[0]
+        #frame_tar_avg = F.interpolate(frame_tar_avg, scale_factor=args.patch_size, mode='bilinear',
+        # align_corners=False, recompute_scale_factor=False)[0]
+        frame_tar_avg = nn.functional.interpolate(frame_tar_avg, size=(ori_h, ori_w), mode='bilinear')[0]
         frame_tar_avg = norm_mask(frame_tar_avg)
         _, frame_tar_seg = torch.max(frame_tar_avg, dim=0)
 
@@ -224,7 +226,7 @@ def read_frame(frame_dir, scale_size=[480]):
             tw = int((tw // 64) * 64)
     else:
         th, tw = scale_size
-    img = cv2.resize(img, (tw, th))
+    #img = cv2.resize(img, (tw, th))
     img = img.astype(np.float32)
     img = img / 255.0
     img = img[:, :, ::-1]
@@ -249,9 +251,10 @@ def read_seg(seg_dir, factor, scale_size=[480]):
     else:
         _th = scale_size[1]
         _tw = scale_size[0]
-    small_seg = np.array(seg.resize((_tw // factor, _th // factor), 0))
-    small_seg = torch.from_numpy(small_seg.copy()).contiguous().float().unsqueeze(0)
-    return to_one_hot(small_seg), np.asarray(seg)
+    #small_seg = np.array(seg.resize((_tw // factor, _th // factor), 0))
+    small_seg = torch.from_numpy(np.array(seg)).contiguous().float().unsqueeze(0).unsqueeze(0)
+    small_seg = nn.functional.interpolate(small_seg, size=(_h // factor, _w // factor), mode='nearest')[0]
+    return to_one_hot(small_seg, n_dims=256), np.asarray(seg)
 
 
 def color_normalize(x, mean=[0.485, 0.456, 0.406], std=[0.228, 0.224, 0.225]):
